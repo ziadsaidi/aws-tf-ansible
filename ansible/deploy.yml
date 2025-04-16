@@ -6,13 +6,9 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install dependencies for Amazon Linux 2023+
-      ansible.builtin.package:
-        name:
-          - nginx
-          - dotnet-sdk-9.0
-        state: present
-        update_cache: yes
+    - name: Install NGINX and .NET SDK manually with dnf5
+      ansible.builtin.command: >
+          dnf install -y nginx dotnet-sdk-9.0
 
     - name: Upload React frontend
       copy:
