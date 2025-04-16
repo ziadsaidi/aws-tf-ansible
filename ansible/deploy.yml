@@ -6,8 +6,7 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install dependencies for Amazon Linux 2023+
-      when: ansible_distribution_version is version('2023', '>=')
+    - name: Install dependencies for Amazon
       ansible.builtin.dnf:
         name:
           - nginx
