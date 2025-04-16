@@ -49,6 +49,10 @@ jobs:
         run: terraform validate
         working-directory: ./infra
 
+      - name: Terraform destroy (test)
+        run: terraform destroy -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
+        working-directory: ./infra
+
       - name: Terraform Plan
         run: terraform plan -input=false -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
         working-directory: ./infra
