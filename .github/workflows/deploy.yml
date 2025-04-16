@@ -17,10 +17,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
 
       - name: Install pnpm
-        run: npm install -g pnpm
+        run: |
+          npm install --global corepack@latest
+          corepack enable pnpm
+          corepack use pnpm@latest-10
 
       - name: Install dependencies & Build React
         working-directory: frontend
