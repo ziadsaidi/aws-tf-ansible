@@ -8,7 +8,7 @@
   tasks:
     - name: Install NGINX and .NET SDK manually with dnf5
       ansible.builtin.command: >
-          yum install -y nginx dotnet-sdk-9.0
+          yum install -y nginx1 dotnet-sdk-9.0
 
     - name: Upload React frontend
       copy:
