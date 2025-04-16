@@ -13,7 +13,7 @@ env:
 
 jobs:
   deploy:
-    name: Deploy Application
+    name: Deploy Application Todos
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
