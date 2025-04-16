@@ -1,0 +1,2 @@
+[webservers]
+# The EC2 instance IP will be dynamically added by the GitHub Actions workflow

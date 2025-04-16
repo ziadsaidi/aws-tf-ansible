@@ -1,0 +1,17 @@
+---
+# Application settings
+app_name: todo-app
+app_dir: /opt/todo-app
+backend_dir: "{{ app_dir }}/backend"
+frontend_dir: "/var/www/html"
+
+# Source paths (relative to the playbook location)
+frontend_src: ../frontend/dist
+backend_src: ../backend/publish
+
+# Service settings
+api_port: 5001
+api_environment: Production
+
+# NGINX settings
+nginx_server_name: _

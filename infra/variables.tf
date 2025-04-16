@@ -1,4 +1,23 @@
+# variables.tf
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "project_name" {
+  description = "Name of the project"
+  type        = string
+  default     = "todo-app"
+}
+
+variable "environment" {
+  description = "Environment (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
 variable "public_key" {
-    type = string
-    sensitive   = true
+  description = "Public key for SSH access"
+  type        = string
 }

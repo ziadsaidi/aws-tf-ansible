@@ -1,0 +1,42 @@
+---
+# System preparation
+- name: Update system packages
+  yum:
+    name: '*'
+    state: latest
+    update_only: yes
+
+- name: Import Microsoft GPG key
+  rpm_key:
+    key: https://packages.microsoft.com/keys/microsoft.asc
+    state: present
+
+- name: Add Microsoft repository
+  get_url:
+    url: https://packages.microsoft.com/config/rhel/8/prod.repo
+    dest: /etc/yum.repos.d/microsoft-prod.repo
+    mode: '0644'
+
+- name: Enable nginx1 using amazon-linux-extras
+  command: amazon-linux-extras enable nginx1
+  changed_when: false
+
+- name: Install .NET SDK 9.0 and NGINX
+  yum:
+    name:
+      - dotnet-sdk-9.0
+      - nginx
+    state: present
+
+# Application directories
+- name: Create application directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode: '0755'
+  with_items:
+    - "{{ app_dir }}"
+    - "{{ backend_dir }}"
+    - "{{ frontend_dir }}"

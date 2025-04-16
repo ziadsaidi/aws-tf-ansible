@@ -1,0 +1,10 @@
+---
+- name: Restart NGINX
+  systemd:
+    name: nginx
+    state: restarted
+
+- name: Restart Backend API
+  systemd:
+    name: todo-api
+    state: restarted

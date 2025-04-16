@@ -1,0 +1,16 @@
+[Unit]
+Description=Todo API Service
+After=network.target
+
+[Service]
+WorkingDirectory={{ backend_dir }}
+ExecStart=/usr/bin/dotnet {{ backend_dir }}/AwsDotnetApp.dll
+Restart=always
+RestartSec=10
+SyslogIdentifier=todo-api
+User=ec2-user
+Environment=ASPNETCORE_ENVIRONMENT={{ api_environment }}
+Environment=ASPNETCORE_URLS=http://+:{{ api_port }}
+
+[Install]
+WantedBy=multi-user.target
