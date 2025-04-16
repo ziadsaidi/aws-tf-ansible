@@ -16,7 +16,7 @@
 
     - name: Install .NET SDK 9.0 and NGINX
       ansible.builtin.command: >
-        dnf install -y dotnet-sdk-9.0 nginx1
+        yum install -y dotnet-sdk-9.0 nginx1
 
     - name: Upload React frontend
       ansible.builtin.copy:
