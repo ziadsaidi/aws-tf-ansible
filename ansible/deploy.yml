@@ -39,12 +39,18 @@
         chdir: /opt/backend/
         executable: /bin/bash
 
+    - name: Ensure sites-available directory exists
+      ansible.builtin.file:
+        path: /etc/nginx/sites-available
+        state: directory
+
     - name: Configure Nginx
       ansible.builtin.copy:
-        src: nginx.conf
-        dest: /etc/nginx/sites-available/default
-        mode: '0644'
-      notify: Restart nginx
+       src: nginx.conf
+       dest: /etc/nginx/sites-available/default
+       mode: '0644'
+       notify: Restart nginx
+
 
   handlers:
     - name: Restart nginx
