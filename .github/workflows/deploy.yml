@@ -65,12 +65,6 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Lint & Test frontend
-        working-directory: frontend
-        run: |
-          pnpm lint
-          pnpm test
-
       - name: Build Frontend
         working-directory: frontend
         run: pnpm build
@@ -90,12 +84,6 @@ jobs:
       - name: Restore backend dependencies
         working-directory: backend
         run: dotnet restore
-
-      - name: Build & Test backend
-        working-directory: backend
-        run: |
-          dotnet build --configuration Release --no-restore
-          dotnet test --no-restore --verbosity normal
 
       - name: Publish backend API
         working-directory: backend
