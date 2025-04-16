@@ -6,34 +6,45 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install NGINX and .NET SDK manually with dnf5
+    - name: Import Microsoft GPG key
       ansible.builtin.command: >
-          yum install -y nginx1 dotnet-sdk-9.0
+        rpm --import https://packages.microsoft.com/keys/microsoft.asc
+
+    - name: Add Microsoft yum repo
+      ansible.builtin.command: >
+        wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/38/prod.repo
+
+    - name: Install .NET SDK 9.0 and NGINX
+      ansible.builtin.command: >
+        dnf install -y dotnet-sdk-9.0 nginx1
 
     - name: Upload React frontend
-      copy:
+      ansible.builtin.copy:
         src: "{{ frontend_src }}"
         dest: /var/www/html/
-        mode: 0755
+        mode: '0755'
 
     - name: Upload .NET backend
-      copy:
+      ansible.builtin.copy:
         src: "{{ backend_src }}"
         dest: /opt/backend/
-        mode: 0755
+        mode: '0755'
 
     - name: Start .NET API
-      shell: "nohup dotnet /opt/backend/AwsDotnetApp.dll &"
+      ansible.builtin.shell: "nohup dotnet /opt/backend/AwsDotnetApp.dll &"
+      args:
+        chdir: /opt/backend/
+        executable: /bin/bash
 
     - name: Configure Nginx
-      copy:
+      ansible.builtin.copy:
         src: nginx.conf
         dest: /etc/nginx/sites-available/default
-        mode: 0644
+        mode: '0644'
       notify: Restart nginx
 
   handlers:
     - name: Restart nginx
-      service:
+      ansible.builtin.service:
         name: nginx
         state: restarted
