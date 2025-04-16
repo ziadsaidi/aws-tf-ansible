@@ -21,6 +21,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Generate SSH public key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          ssh-keygen -y -f private_key.pem > public_key.pub
+        id: generate_pub_key
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -43,7 +50,7 @@ jobs:
         working-directory: ./infra
 
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -input=false  -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
         working-directory: ./infra
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -56,12 +63,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Generate SSH public key
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
-          ssh-keygen -y -f private_key.pem > public_key.pub
-        id: generate_pub_key
+
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
