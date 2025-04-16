@@ -46,4 +46,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           inventory: |
             [all]
-            3.93.145.248 ansible_user=ec2-user
+            13.218.132.112 ansible_user=ec2-user
