@@ -2,7 +2,7 @@
   hosts: all
   become: true
   vars:
-    frontend_src: ../frontend/build/
+    frontend_src: ../frontend/dist
     backend_src: ../backend/publish/
 
   tasks:

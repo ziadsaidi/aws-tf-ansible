@@ -13,11 +13,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node & Build React
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies & Build React
         working-directory: frontend
         run: |
-          npm install
-          npm run build
+          pnpm install
+          pnpm build
 
       - name: Setup .NET & Build API
         uses: actions/setup-dotnet@v3
@@ -27,7 +36,6 @@ jobs:
       - name: Publish API
         working-directory: backend
         run: dotnet publish -c Release -o publish
-
 
       - name: Run Ansible
         uses: dawidd6/action-ansible-playbook@v2
