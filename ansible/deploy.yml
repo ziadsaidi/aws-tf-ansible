@@ -26,19 +26,13 @@
         yum install -y dotnet-sdk-9.0 nginx
       become: true
 
-
-    - name: Upload React frontend
+    - name: Upload React frontend content (only contents of dist)
       ansible.builtin.copy:
-        src: "{{ frontend_src }}"
+        src: "{{ item }}"
         dest: /var/www/html/
         mode: '0755'
-      become: true
-
-    - name: Upload .NET backend
-      ansible.builtin.copy:
-        src: "{{ backend_src }}"
-        dest: /opt/backend/
-        mode: '0755'
+        with_fileglob:
+          - "{{ frontend_src }}/*"
       become: true
 
     - name: Start .NET API
