@@ -6,14 +6,13 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install dependencies for Amazon
-      ansible.builtin.dnf:
+    - name: Install dependencies for Amazon Linux 2023+
+      ansible.builtin.yum:
         name:
           - nginx
           - dotnet-sdk-9.0
         state: present
         update_cache: yes
-        use_backend: dnf5
 
     - name: Upload React frontend
       copy:
