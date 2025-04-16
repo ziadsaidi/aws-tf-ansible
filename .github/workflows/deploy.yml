@@ -1,19 +1,237 @@
----
-- name: Deploy Todo Application
-  hosts: all
-  become: true
-  vars_files:
-    - group_vars/all.yml
-  
-  tasks:
-    - name: Include common tasks
-      include_tasks: tasks/common.yml
-      
-    - name: Include backend deployment tasks
-      include_tasks: tasks/backend.yml
-      
-    - name: Include frontend deployment tasks
-      include_tasks: tasks/frontend.yml
-  
-  handlers:
-    - import_tasks: handlers.yml
+name: CI/CD - Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  TERRAFORM_VERSION: '1.5.0'
+  NODE_VERSION: '20'
+  PNPM_VERSION: 'latest-10'
+  DOTNET_VERSION: '9.0.x'
+  TF_INPUT: 'false'
+
+jobs:
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./infra
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+        working-directory: ./infra
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./infra
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Install pnpm
+        run: |
+          npm install --global corepack@latest
+          corepack enable pnpm
+          corepack use pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint & Test frontend
+        working-directory: frontend
+        run: |
+          pnpm lint
+          pnpm test
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: pnpm build
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/dist
+          retention-days: 1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore backend dependencies
+        working-directory: backend
+        run: dotnet restore
+
+      - name: Build & Test backend
+        working-directory: backend
+        run: |
+          dotnet build --configuration Release --no-restore
+          dotnet test --no-restore --verbosity normal
+
+      - name: Publish backend API
+        working-directory: backend
+        run: dotnet publish -c Release -o publish
+
+      - name: Upload backend build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-build
+          path: backend/publish
+          retention-days: 1
+
+  deploy-infra:
+    name: Deploy Infrastructure
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate SSH public key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          ssh-keygen -y -f private_key.pem > public_key.pub
+        id: generate_pub_key
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('infra/**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      # First run: Create state bucket without remote backend
+      - name: Initialize State Storage
+        id: init_state
+        run: |
+          # Comment out backend config temporarily
+          sed -i '/backend "s3"/,/}/s/^/#/' backend.tf
+          
+          # Initialize and create state resources
+          terraform init
+          terraform apply -auto-approve -target=module.state -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
+          
+          # Re-enable backend config
+          sed -i '/^#.*backend "s3"/,/^#.*}/s/^#//' backend.tf
+        working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        continue-on-error: true
+
+      - name: Terraform Init with Remote Backend
+        run: terraform init -reconfigure
+        working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Plan
+        run: terraform plan -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)" -out=tfplan
+        working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Apply
+        id: terraform_apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Get EC2 Public IP
+        id: ec2_ip
+        run: |
+          export EC2_IP=$(terraform output -raw ec2_public_ip)
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_OUTPUT
+        working-directory: ./infra
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy-app:
+    name: Deploy Application
+    needs: [build, deploy-infra]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download frontend build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: frontend-build
+          path: frontend/dist
+          
+      - name: Download backend build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-build
+          path: backend/publish
+
+      - name: Get EC2 Public IP
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const output = require('${{ github.workspace }}/.github/temp/output.json');
+            core.exportVariable('EC2_IP', output.ec2_ip);
+
+      - name: Wait for instance initialization
+        run: sleep 60
+
+      - name: Deploy with Ansible
+        uses: dawidd6/action-ansible-playbook@v2
+        with:
+          playbook: ansible/deploy.yml
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          inventory: |
+            [all]
+            ${{ env.EC2_IP }} ansible_user=ec2-user ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for the application to start..."
+          sleep 30
+          # Check if HTTP endpoint is reachable
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.EC2_IP }}:80 | grep -q 200 || echo "Frontend not responding"
+          curl -s -o /dev/null -w "%{http_code}" http://${{ env.EC2_IP }}:5001/api/health | grep -q 200 || echo "Backend API not responding"
