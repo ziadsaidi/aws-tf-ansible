@@ -13,25 +13,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Set up Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.5.0'
 
+      # Initialize Terraform
       - name: Initialize Terraform
         run: terraform init
+        working-directory: ./infra  # Pointing to the 'infra' folder
 
+      # Apply Terraform to create infrastructure
       - name: Apply Terraform to create infrastructure
         id: terraform_apply
         run: |
           terraform apply -auto-approve
           echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+        working-directory: ./infra  # Pointing to the 'infra' folder
 
+      # Set up Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # Install pnpm and dependencies
       - name: Install pnpm
         run: |
           npm install --global corepack@latest
@@ -44,6 +51,7 @@ jobs:
           pnpm install
           pnpm build
 
+      # Set up .NET & Build API
       - name: Setup .NET & Build API
         uses: actions/setup-dotnet@v3
         with:
@@ -53,6 +61,7 @@ jobs:
         working-directory: backend
         run: dotnet publish -c Release -o publish
 
+      # Run Ansible
       - name: Run Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
@@ -61,4 +70,3 @@ jobs:
           inventory: |
             [all]
             ${{ env.EC2_IP }} ansible_user=ec2-user
-
