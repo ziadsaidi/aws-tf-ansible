@@ -63,4 +63,4 @@ app.MapPut("/todos/{id}", async (Guid id, UpdateTodo update, IMediator mediator)
 app.MapDelete("/todos/{id}", async (Guid id, IMediator mediator) =>
     await mediator.Send(new DeleteTodo(id)) ? Results.Ok() : Results.NotFound());
 
-app.Run();
+app.Run("http://0.0.0.0:5000");
