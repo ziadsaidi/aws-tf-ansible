@@ -9,40 +9,59 @@
     - name: Import Microsoft GPG key
       ansible.builtin.command: >
         rpm --import https://packages.microsoft.com/keys/microsoft.asc
+      become: true
 
     - name: Add Microsoft yum repo
       ansible.builtin.command: >
         wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/38/prod.repo
+      become: true
+
+    - name: Enable nginx1 using amazon-linux-extras
+      ansible.builtin.command: >
+        amazon-linux-extras enable nginx1
+      become: true
 
     - name: Install .NET SDK 9.0 and NGINX
-      ansible.builtin.shell: |
-        yum install -y dotnet-sdk-9.0
-        amazon-linux-extras install nginx1
-      args:
-         executable: /bin/bash
+      ansible.builtin.yum:
+        name:
+          - dotnet-sdk-9.0
+          - nginx
+        state: present
+      become: true
+
+    - name: Start and enable nginx service
+      ansible.builtin.systemd:
+        name: nginx
+        state: started
+        enabled: true
+      become: true
 
     - name: Upload React frontend
       ansible.builtin.copy:
         src: "{{ frontend_src }}"
         dest: /var/www/html/
         mode: '0755'
+      become: true
 
     - name: Upload .NET backend
       ansible.builtin.copy:
         src: "{{ backend_src }}"
         dest: /opt/backend/
         mode: '0755'
+      become: true
 
     - name: Start .NET API
       ansible.builtin.shell: "nohup dotnet /opt/backend/AwsDotnetApp.dll &"
       args:
         chdir: /opt/backend/
         executable: /bin/bash
+      become: true
 
     - name: Ensure sites-available directory exists
       ansible.builtin.file:
         path: /etc/nginx/sites-available
         state: directory
+      become: true
 
     - name: Configure Nginx
       ansible.builtin.copy:
@@ -50,9 +69,11 @@
         dest: /etc/nginx/nginx.conf
         mode: '0644'
       register: nginx_config_updated
+      become: true
 
-    - name: Restart nginx
+    - name: Restart nginx if config is updated
       ansible.builtin.service:
         name: nginx
         state: restarted
       when: nginx_config_updated.changed
+      become: true
