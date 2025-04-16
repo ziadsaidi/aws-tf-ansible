@@ -7,7 +7,7 @@
 
   tasks:
     - name: Install dependencies for Amazon Linux 2023+
-      ansible.builtin.yum:
+      ansible.builtin.package:
         name:
           - nginx
           - dotnet-sdk-9.0
