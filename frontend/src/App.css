@@ -1,38 +1,201 @@
-.App {
-  text-align: center;
+/* App.css */
+:root {
+  --primary-color: #3b82f6;
+  --primary-dark: #2563eb;
+  --danger-color: #ef4444;
+  --success-color: #10b981;
+  --text-color: #1f2937;
+  --text-light: #6b7280;
+  --bg-color: #f3f4f6;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.5;
 }
 
-.App-header {
-  background-color: #282c34;
+.app-container {
   min-height: 100vh;
+  padding: 2rem;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  align-items: flex-start;
+  padding-top: 3rem;
+}
+
+.todo-card {
+  width: 100%;
+  max-width: 500px;
+  background-color: var(--card-bg);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.card-header {
+  background-color: var(--primary-color);
+  padding: 1rem 1.5rem;
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.card-header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.todo-form {
+  display: flex;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.todo-input {
+  flex-grow: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-right: none;
+  border-radius: 0.25rem 0 0 0.25rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.todo-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.add-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-button:hover {
+  background-color: var(--primary-dark);
+}
+
+.error-message {
+  padding: 0.75rem 1.5rem;
+  background-color: #fee2e2;
+  color: var(--danger-color);
+  border-bottom: 1px solid #fecaca;
+}
+
+.loading-message,
+.empty-message {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  color: var(--text-light);
+}
+
+.todo-list {
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-right: 0.75rem;
+  color: var(--text-light);
+}
+
+.toggle-button.completed {
+  color: var(--success-color);
+}
+
+.todo-title {
+  flex-grow: 1;
+}
+
+.completed-text {
+  text-decoration: line-through;
+  color: var(--text-light);
+}
+
+.action-buttons {
+  display: flex;
+}
+
+.edit-button,
+.delete-button,
+.save-button,
+.cancel-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.edit-button {
+  color: var(--primary-color);
+}
+
+.delete-button {
+  color: var(--danger-color);
+}
+
+.save-button {
+  color: var(--success-color);
+}
+
+.cancel-button {
+  color: var(--danger-color);
+}
+
+.edit-container {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+}
+
+.edit-input {
+  flex-grow: 1;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.edit-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.card-footer {
+  padding: 0.75rem 1.5rem;
+  background-color: #f9fafb;
+  font-size: 0.875rem;
+  color: var(--text-light);
+  border-top: 1px solid var(--border-color);
 }

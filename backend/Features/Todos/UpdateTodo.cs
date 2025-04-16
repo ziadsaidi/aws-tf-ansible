@@ -16,7 +16,7 @@ public class UpdateTodoHandler : IRequestHandler<UpdateTodo, Todo?>
         var todo = await _context.Todos.FindAsync([request.Id], cancellationToken);
         if (todo is null) return null;
 
-        todo.UpdateTodo(request.Title,request.IsDone);
+        todo.Title = request.Title;
 
         await _context.SaveChangesAsync(cancellationToken);
         return todo;

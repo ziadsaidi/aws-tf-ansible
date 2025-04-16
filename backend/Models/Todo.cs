@@ -1,9 +1,13 @@
 namespace AwsDotnetApp.Models;
 
-public record Todo(Guid Id, string Title, bool IsDone)
+public class Todo
 {
-    public Todo UpdateTodo(string title, bool isDone)
-    {
-        return this with { Title = title, IsDone = isDone };
-    }
+
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    public string Title { get; set; }
+    
+
+    public bool IsDone { get; set; }
 }
+
