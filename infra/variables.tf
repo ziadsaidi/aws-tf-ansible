@@ -13,5 +13,5 @@ variable "AWS_SECRET_ACCESS_KEY" {
 
 variable "public_key" {
     type = string
-  
+    sensitive   = true
 }

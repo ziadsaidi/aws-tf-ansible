@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 120  # Increase the timeout for longer applies
 
     steps:
       # Step 1: Checkout the code from the repository
@@ -20,7 +21,16 @@ jobs:
         with:
           terraform_version: '1.5.0'
 
-      # Step 3: Generate the public key from the private key stored in GitHub Secrets
+      # Step 3: Cache Terraform providers
+      - name: Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      # Step 4: Generate the public key from private key stored in GitHub Secrets
       - name: Generate public key from private key
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
@@ -28,27 +38,32 @@ jobs:
           ssh-keygen -y -f private_key.pem > public_key.pub
         id: generate_pub_key
 
-      # Step 4: Initialize Terraform
+      # Step 5: Initialize Terraform
       - name: Initialize Terraform
         run: terraform init
         working-directory: ./infra  # Pointing to the 'infra' folder
 
-      # Step 5: Apply Terraform to create infrastructure and pass the public key to Terraform
+      # Step 6: Terraform Plan
+      - name: Terraform Plan
+        id: terraform_plan
+        run: terraform plan -out=tfplan -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
+        working-directory: ./infra  # Pointing to the 'infra' folder
+
+      # Step 7: Apply Terraform if Plan is Successful
       - name: Apply Terraform to create infrastructure
         id: terraform_apply
         run: |
-          terraform apply -auto-approve \
-            -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"  # Passing the public key to Terraform
+          terraform apply -auto-approve tfplan
           echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
         working-directory: ./infra  # Pointing to the 'infra' folder
 
-      # Step 6: Set up Node.js for the frontend
+      # Step 8: Set up Node.js for the frontend
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Step 7: Install pnpm and frontend dependencies
+      # Step 9: Install pnpm and frontend dependencies
       - name: Install pnpm
         run: |
           npm install --global corepack@latest
@@ -61,7 +76,7 @@ jobs:
           pnpm install
           pnpm build
 
-      # Step 8: Set up .NET for the backend and build the API
+      # Step 10: Set up .NET for the backend and build the API
       - name: Setup .NET & Build API
         uses: actions/setup-dotnet@v3
         with:
@@ -71,7 +86,7 @@ jobs:
         working-directory: backend
         run: dotnet publish -c Release -o publish
 
-      # Step 9: Run Ansible to deploy on the EC2 instance
+      # Step 11: Run Ansible to deploy on the EC2 instance
       - name: Run Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
