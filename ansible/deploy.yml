@@ -47,7 +47,7 @@
     - name: Configure Nginx
       ansible.builtin.copy:
         src: nginx.conf
-        dest: /etc/nginx/sites-available/default
+        dest: /etc/nginx/nginx.conf
         mode: '0644'
       register: nginx_config_updated
 
