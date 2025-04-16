@@ -6,16 +6,6 @@
     backend_src: ../backend/publish/
 
   tasks:
-    # Install dependencies for Amazon Linux 2 or Amazon Linux 2023+
-    - name: Install dependencies for Amazon Linux 2
-      when: ansible_distribution_version is version('2', '==')
-      ansible.builtin.yum:
-        name:
-          - nginx
-          - dotnet-sdk-9.0
-        state: present
-        update_cache: yes
-
     - name: Install dependencies for Amazon Linux 2023+
       when: ansible_distribution_version is version('2023', '>=')
       ansible.builtin.dnf:
