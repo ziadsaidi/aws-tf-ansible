@@ -1,19 +1,15 @@
-
-
 provider "aws" {
-
-  region = "us-east-1"
-
+  region     = "us-east-1"
+  access_key = var.AWS_ACCESS_KEY_ID
+  secret_key = var.AWS_SECRET_ACCESS_KEY
 }
 
 resource "aws_key_pair" "deployer" {
   key_name   = "deployer-key"
-  public_key = file("~/.ssh/todo_key.pub")
+  public_key = var.public_key  # Using the public key passed from the GitHub Actions workflow
 }
 
-
 resource "aws_security_group" "todo_sg" {
-
   name        = "todo-sg"
   description = "Allow http and ssh"
 
@@ -44,12 +40,9 @@ resource "aws_security_group" "todo_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
 }
 
-
 resource "aws_instance" "todo-server" {
-
   ami                    = "ami-0c02fb55956c7d316"
   instance_type          = "t2.micro"
   key_name               = aws_key_pair.deployer.key_name
@@ -77,7 +70,6 @@ resource "aws_instance" "todo-server" {
               python3 --version
               pip3 --version
               EOF
-
 }
 
 output "ec2_public_ip" {

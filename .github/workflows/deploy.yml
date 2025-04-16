@@ -10,35 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set up Terraform
+      # Step 2: Set up Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.5.0'
 
-      # Initialize Terraform
+      # Step 3: Generate the public key from the private key stored in GitHub Secrets
+      - name: Generate public key from private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          ssh-keygen -y -f private_key.pem > public_key.pub
+        id: generate_pub_key
+
+      # Step 4: Initialize Terraform
       - name: Initialize Terraform
         run: terraform init
         working-directory: ./infra  # Pointing to the 'infra' folder
 
-      # Apply Terraform to create infrastructure
+      # Step 5: Apply Terraform to create infrastructure and pass the public key to Terraform
       - name: Apply Terraform to create infrastructure
         id: terraform_apply
         run: |
-          terraform apply -auto-approve
+          terraform apply -auto-approve \
+            -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"  # Passing the public key to Terraform
           echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
         working-directory: ./infra  # Pointing to the 'infra' folder
 
-      # Set up Node.js
+      # Step 6: Set up Node.js for the frontend
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Install pnpm and dependencies
+      # Step 7: Install pnpm and frontend dependencies
       - name: Install pnpm
         run: |
           npm install --global corepack@latest
@@ -51,7 +61,7 @@ jobs:
           pnpm install
           pnpm build
 
-      # Set up .NET & Build API
+      # Step 8: Set up .NET for the backend and build the API
       - name: Setup .NET & Build API
         uses: actions/setup-dotnet@v3
         with:
@@ -61,7 +71,7 @@ jobs:
         working-directory: backend
         run: dotnet publish -c Release -o publish
 
-      # Run Ansible
+      # Step 9: Run Ansible to deploy on the EC2 instance
       - name: Run Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
@@ -70,3 +80,7 @@ jobs:
           inventory: |
             [all]
             ${{ env.EC2_IP }} ansible_user=ec2-user
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
