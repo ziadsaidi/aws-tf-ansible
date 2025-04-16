@@ -1,27 +1,31 @@
-name: CI/CD Deploy To AWS
+name: CI/CD - Deploy to AWS
 
 on:
   push:
     branches:
       - main
 
+env:
+  TERRAFORM_VERSION: '1.5.0'
+  NODE_VERSION: '20'
+  PNPM_VERSION: 'latest-10'
+  DOTNET_VERSION: '9.0.x'
+
 jobs:
   deploy:
+    name: Deploy Application
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # Increase the timeout for longer applies
+    timeout-minutes: 120
 
     steps:
-      # Step 1: Checkout the code from the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Terraform
-      - name: Set up Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: '1.5.0'
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # Step 3: Cache Terraform providers
       - name: Cache Terraform providers
         uses: actions/cache@v3
         with:
@@ -30,64 +34,62 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-terraform-
 
-      # Step 4: Generate the public key from private key stored in GitHub Secrets
-      - name: Generate public key from private key
+      - name: Terraform Init
+        run: terraform init
+        working-directory: terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: terraform
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Generate SSH public key
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
           ssh-keygen -y -f private_key.pem > public_key.pub
         id: generate_pub_key
 
-      # Step 5: Initialize Terraform
-      - name: Initialize Terraform
-        run: terraform init
-        working-directory: ./infra  # Pointing to the 'infra' folder
-
-      # Step 6: Terraform Plan
-      - name: Terraform Plan
-        id: terraform_plan
-        run: terraform plan -out=tfplan -var "public_key=$(cat ${GITHUB_WORKSPACE}/public_key.pub)"
-        working-directory: ./infra  # Pointing to the 'infra' folder
-
-      # Step 7: Apply Terraform if Plan is Successful
-      - name: Apply Terraform to create infrastructure
-        id: terraform_apply
-        run: |
-          terraform apply -auto-approve tfplan
-          echo "EC2_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
-        working-directory: ./infra  # Pointing to the 'infra' folder
-
-      # Step 8: Set up Node.js for the frontend
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
 
-      # Step 9: Install pnpm and frontend dependencies
       - name: Install pnpm
         run: |
           npm install --global corepack@latest
           corepack enable pnpm
-          corepack use pnpm@latest-10
+          corepack use pnpm@${{ env.PNPM_VERSION }}
 
-      - name: Install dependencies & Build React
+      - name: Install frontend dependencies and build
         working-directory: frontend
         run: |
           pnpm install
           pnpm build
 
-      # Step 10: Set up .NET for the backend and build the API
-      - name: Setup .NET & Build API
+      - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Publish API
+      - name: Publish backend API
         working-directory: backend
         run: dotnet publish -c Release -o publish
 
-      # Step 11: Run Ansible to deploy on the EC2 instance
-      - name: Run Ansible
+      - name: Run Ansible deployment
         uses: dawidd6/action-ansible-playbook@v2
         with:
           playbook: ansible/deploy.yml
@@ -95,7 +97,3 @@ jobs:
           inventory: |
             [all]
             ${{ env.EC2_IP }} ansible_user=ec2-user
-
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
