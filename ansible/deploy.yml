@@ -6,9 +6,28 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install required packages
-      apt:
-        name: ['nginx', 'dotnet-sdk-9.0']
+    - name: Install dependencies for Microsoft repo
+      yum:
+        name:
+          - wget
+          - yum-utils
+        state: present
+        update_cache: yes
+
+    - name: Add Microsoft Yum repo for .NET 9
+      get_url:
+        url: https://packages.microsoft.com/config/centos/7/prod.repo
+        dest: /etc/yum.repos.d/microsoft-prod.repo
+
+    - name: Install .NET SDK 9.0
+      yum:
+        name: dotnet-sdk-9.0
+        state: present
+        update_cache: yes
+
+    - name: Install Nginx
+      yum:
+        name: nginx
         state: present
         update_cache: yes
 
@@ -16,8 +35,8 @@
       copy:
         src: "{{ frontend_src }}"
         dest: /var/www/html/
-        owner:  
-        group: www-data
+        owner: ec2-user
+        group: nginx
         mode: 0755
 
     - name: Upload .NET backend
@@ -32,7 +51,7 @@
     - name: Configure Nginx
       copy:
         src: nginx.conf
-        dest: /etc/nginx/sites-available/default
+        dest: /etc/nginx/nginx.conf
         mode: 0644
       notify: Restart nginx
 
