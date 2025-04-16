@@ -3,7 +3,7 @@ terraform {
   backend "s3" {
     bucket         = "todo-app-terraform-state"  # This must match the bucket name in the state module
     key            = "terraform.tfstate"
-    region         = "us-east-1"
+    region         = "eu-north-1"
     encrypt        = true
     dynamodb_table = "todo-app-terraform-locks"  # For state locking
   }
