@@ -11,7 +11,7 @@ function App() {
   const [editingTodo, setEditingTodo] = useState(null);
   const [editText, setEditText] = useState('');
 
-  const API_URL = "http://localhost:5001"; // Updated to match your port
+  const API_URL = "http://44.202.148.89/api"; // Updated to match your port
 
   // Fetch all todos
   const fetchTodos = async () => {
