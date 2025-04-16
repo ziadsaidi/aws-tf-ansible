@@ -1,0 +1,43 @@
+- name: Deploy ToDo App
+  hosts: all
+  become: true
+  vars:
+    frontend_src: ../frontend/build/
+    backend_src: ../backend/publish/
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: ['nginx', 'dotnet-sdk-9.0']
+        state: present
+        update_cache: yes
+
+    - name: Upload React frontend
+      copy:
+        src: "{{ frontend_src }}"
+        dest: /var/www/html/
+        owner:  
+        group: www-data
+        mode: 0755
+
+    - name: Upload .NET backend
+      copy:
+        src: "{{ backend_src }}"
+        dest: /opt/backend/
+        mode: 0755
+
+    - name: Start .NET API
+      shell: "nohup dotnet /opt/backend/backend.dll &"
+
+    - name: Configure Nginx
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/sites-available/default
+        mode: 0644
+      notify: Restart nginx
+
+  handlers:
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
