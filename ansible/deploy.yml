@@ -15,8 +15,11 @@
         wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/38/prod.repo
 
     - name: Install .NET SDK 9.0 and NGINX
-      ansible.builtin.command: >
-        yum install -y dotnet-sdk-9.0 nginx1
+      ansible.builtin.shell: |
+        yum install -y dotnet-sdk-9.0
+        amazon-linux-extras install nginx1
+      args:
+         executable: /bin/bash
 
     - name: Upload React frontend
       ansible.builtin.copy:
