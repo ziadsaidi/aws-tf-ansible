@@ -28,6 +28,12 @@ jobs:
         working-directory: backend
         run: dotnet publish -c Release -o publish
 
+      - name: Debug SSH Key
+        run: |
+           echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+           chmod 600 key.pem
+           ssh -i key.pem ec2-user@44.204.50.77 uname -a
+
       - name: Run Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
