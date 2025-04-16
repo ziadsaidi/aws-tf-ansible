@@ -6,37 +6,32 @@
     backend_src: ../backend/publish/
 
   tasks:
-    - name: Install dependencies for Microsoft repo
-      yum:
+    # Install dependencies for Amazon Linux 2 or Amazon Linux 2023+
+    - name: Install dependencies for Amazon Linux 2
+      when: ansible_distribution_version is version('2', '==')
+      ansible.builtin.yum:
         name:
-          - wget
-          - yum-utils
+          - nginx
+          - dotnet-sdk-9.0
         state: present
         update_cache: yes
 
-    - name: Add Microsoft Yum repo for .NET 9
-      get_url:
-        url: https://packages.microsoft.com/config/centos/7/prod.repo
-        dest: /etc/yum.repos.d/microsoft-prod.repo
-
-    - name: Install .NET SDK 9.0
-      yum:
-        name: dotnet-sdk-9.0
+    - name: Install dependencies for Amazon Linux 2023+
+      when: ansible_distribution_version is version('2023', '>=')
+      ansible.builtin.dnf:
+        name:
+          - nginx
+          - dotnet-sdk-9.0
         state: present
         update_cache: yes
-
-    - name: Install Nginx
-      yum:
-        name: nginx
-        state: present
-        update_cache: yes
+        use_backend: dnf5
 
     - name: Upload React frontend
       copy:
         src: "{{ frontend_src }}"
         dest: /var/www/html/
         owner: ec2-user
-        group: nginx
+        group: www-data
         mode: 0755
 
     - name: Upload .NET backend
@@ -51,7 +46,7 @@
     - name: Configure Nginx
       copy:
         src: nginx.conf
-        dest: /etc/nginx/nginx.conf
+        dest: /etc/nginx/sites-available/default
         mode: 0644
       notify: Restart nginx
 
